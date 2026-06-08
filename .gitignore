@@ -1,0 +1,16 @@
+# OS files
+.DS_Store
+
+# Large media files and logs
+Videos/
+transcription.log
+downloaded_audio_*.mp3
+downloaded_audio_*.m4a
+
+# Python caches and virtual environments
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.env
