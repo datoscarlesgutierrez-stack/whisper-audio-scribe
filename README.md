@@ -16,35 +16,41 @@ La transcripción se procesa localmente y el resultado se guarda en un documento
 
 ---
 
-## Requisitos Previos
+## Instalación
 
-Para que funcione en tu máquina (macOS o Windows), necesitarás tener instalados:
+Puedes realizar la instalación de forma automatizada mediante los scripts incluidos, o seguir el método manual.
 
-1. **Python 3.8 o superior**
-2. **FFmpeg** (requerido por Whisper y yt-dlp para el procesamiento de audio).
+### 🚀 Método 1: Instalación Automatizada (Recomendado)
 
-### Instalación de dependencias del sistema:
-
-#### En macOS (con Homebrew):
+#### En macOS (y Linux):
+Abre tu terminal y ejecuta:
 ```bash
-brew install ffmpeg
+./install.sh
 ```
+*(El script comprobará Python3, instalará FFmpeg a través de Homebrew si falta, e instalará todas las dependencias de Python necesarias).*
 
-#### En Windows (con Chocolatey o manual):
-```cmd
-choco install ffmpeg
+#### En Windows:
+Abre PowerShell como Administrador y ejecuta:
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+.\install.ps1
 ```
-*O descargando la build oficial de FFmpeg y añadiéndola a la variable de entorno PATH.*
+*(El script comprobará Python, intentará instalar FFmpeg automáticamente a través de Windows Package Manager `winget` si falta, e instalará todas las dependencias necesarias).*
 
 ---
 
-## Instalación de dependencias de Python
+### 🛠️ Método 2: Instalación Manual
 
-Instala las bibliotecas requeridas ejecutando el siguiente comando:
+Si prefieres realizar los pasos por ti mismo:
 
-```bash
-pip3 install openai-whisper yt-dlp torch
-```
+1. **Instalar dependencias del sistema (FFmpeg)**:
+   - **macOS** (con Homebrew): `brew install ffmpeg`
+   - **Windows** (con Chocolatey): `choco install ffmpeg` (o descárgalo de https://ffmpeg.org y añádelo al PATH)
+
+2. **Instalar librerías de Python**:
+   ```bash
+   pip3 install openai-whisper yt-dlp torch
+   ```
 
 ---
 
