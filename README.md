@@ -1,4 +1,4 @@
-# Herramienta de Transcripción de Audio y Video con OpenAI Whisper
+# WhisperAudioScribe: Transcriptor Local de Audio y Video con OpenAI Whisper
 
 Este proyecto contiene un script de Python interactivo (`transcribe.py`) para transcribir archivos de audio y video locales o directamente desde URLs de internet (como YouTube) usando la biblioteca oficial de **OpenAI Whisper**.
 
