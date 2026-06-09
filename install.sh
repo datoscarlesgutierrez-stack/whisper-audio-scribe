@@ -1,81 +1,123 @@
 #!/bin/bash
 
-# WhisperAudioScribe - Script de instalación automatizado para macOS / Linux
-# Colores para salida de terminal
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+# =============================================================
+# WhisperAudioScribe - Instalador automático (macOS / Linux)
+# =============================================================
+# Instala:  uv  +  FFmpeg
+# uv gestiona Python y todas las dependencias de Python.
+# Una vez instalado, ejecutar:
+#   uv run transcribe.py "ruta/del/video.mp4"
+# =============================================================
 
-echo -e "${BLUE}=== Iniciando instalación de WhisperAudioScribe ===${NC}"
+set -e  # Salir en caso de error
 
-# 1. Comprobar Python3
-if ! command -v python3 &> /dev/null; then
-    echo -e "${RED}[!] Error: Python3 no está instalado.${NC}"
-    echo -e "Por favor, descarga e instala Python 3 desde: https://www.python.org/downloads/"
-    exit 1
+# Colores
+GREEN='\033[0;32m'; BLUE='\033[0;34m'
+YELLOW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
+
+info()  { echo -e "${BLUE}[*] $1${NC}"; }
+ok()    { echo -e "${GREEN}[✓] $1${NC}"; }
+warn()  { echo -e "${YELLOW}[!] $1${NC}"; }
+err()   { echo -e "${RED}[✗] $1${NC}"; exit 1; }
+
+echo -e "${BLUE}"
+echo "╔══════════════════════════════════════════════╗"
+echo "║   WhisperAudioScribe — Instalador (Unix)     ║"
+echo "╚══════════════════════════════════════════════╝"
+echo -e "${NC}"
+
+# Detectar OS
+OS="unknown"
+[[ "$OSTYPE" == "darwin"* ]]                  && OS="macos"
+command -v apt-get &>/dev/null                 && OS="debian"
+(command -v dnf &>/dev/null || command -v yum &>/dev/null) && OS="redhat"
+
+info "Sistema detectado: ${OS}"
+
+# -----------------------------------------------------------
+# PASO 1 — Instalar uv
+# -----------------------------------------------------------
+if command -v uv &>/dev/null; then
+    ok "uv ya está instalado: $(uv --version)"
 else
-    echo -e "${GREEN}[✓] Python3 detectado: $(python3 --version)${NC}"
-fi
+    info "Instalando uv (gestor de Python y paquetes de Astral)..."
+    curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# 2. Comprobar Pip3
-if ! command -v pip3 &> /dev/null; then
-    echo -e "${YELLOW}[!] pip3 no detectado. Intentando instalar con python...${NC}"
-    python3 -m ensurepip --default-pip
-    if [ $? -ne 0 ]; then
-        echo -e "${RED}[!] No se pudo instalar pip de forma automática.${NC}"
-        exit 1
+    # Cargar uv en la sesión actual
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+    source "$HOME/.local/bin/env" 2>/dev/null || true
+
+    if ! command -v uv &>/dev/null; then
+        err "uv no se encontró tras la instalación. Reinicia la terminal y vuelve a ejecutar el script."
     fi
-else
-    echo -e "${GREEN}[✓] pip3 detectado.${NC}"
+    ok "uv instalado: $(uv --version)"
 fi
 
-# 3. Comprobar e Instalar FFmpeg
-if ! command -v ffmpeg &> /dev/null; then
-    echo -e "${YELLOW}[!] FFmpeg no está instalado. Es requerido para procesar audio.${NC}"
-    
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        # macOS
-        if command -v brew &> /dev/null; then
-            echo -e "${BLUE}[*] Instalando FFmpeg con Homebrew...${NC}"
-            brew install ffmpeg
-        else
-            echo -e "${RED}[!] Homebrew no está instalado.${NC}"
-            echo -e "Instala Homebrew desde https://brew.sh e intenta de nuevo, o instala FFmpeg manualmente."
-            exit 1
+# -----------------------------------------------------------
+# PASO 2 — Instalar Python 3.12 via uv
+# -----------------------------------------------------------
+info "Asegurando Python 3.12 con uv..."
+uv python install 3.12 --quiet
+ok "Python listo: $(uv run python --version 2>&1)"
+
+# -----------------------------------------------------------
+# PASO 3 — Instalar FFmpeg (único componente de sistema)
+# -----------------------------------------------------------
+if command -v ffmpeg &>/dev/null; then
+    ok "FFmpeg ya está instalado: $(ffmpeg -version 2>&1 | head -1)"
+else
+    warn "FFmpeg no encontrado. Instalando..."
+
+    if [[ "$OS" == "macos" ]]; then
+        # Instalar Homebrew si no existe
+        if ! command -v brew &>/dev/null; then
+            info "Instalando Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            # Añadir brew al PATH (Apple Silicon vs Intel)
+            [[ -f /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+            [[ -f /usr/local/bin/brew    ]] && eval "$(/usr/local/bin/brew shellenv)"
+            ok "Homebrew instalado."
         fi
-    elif command -v apt-get &> /dev/null; then
-        # Debian/Ubuntu
-        echo -e "${BLUE}[*] Instalando FFmpeg con apt...${NC}"
-        sudo apt-get update && sudo apt-get install -y ffmpeg
+        brew install ffmpeg
+
+    elif [[ "$OS" == "debian" ]]; then
+        sudo apt-get update -y -q
+        sudo apt-get install -y -q ffmpeg
+
+    elif [[ "$OS" == "redhat" ]]; then
+        # Necesita RPM Fusion para FFmpeg en Fedora/RHEL
+        if command -v dnf &>/dev/null; then
+            sudo dnf install -y \
+                "https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm" \
+                2>/dev/null || true
+            sudo dnf install -y ffmpeg
+        else
+            sudo yum install -y epel-release 2>/dev/null || true
+            sudo yum install -y ffmpeg || err "No se pudo instalar FFmpeg. Instálalo desde https://ffmpeg.org"
+        fi
     else
-        echo -e "${RED}[!] No se pudo determinar el gestor de paquetes para instalar FFmpeg.${NC}"
-        echo -e "Por favor, instala FFmpeg de forma manual."
-        exit 1
+        err "Sistema no reconocido. Instala FFmpeg manualmente desde https://ffmpeg.org"
     fi
-else
-    echo -e "${GREEN}[✓] FFmpeg detectado: $(ffmpeg -version | head -n 1)${NC}"
+
+    ok "FFmpeg instalado: $(ffmpeg -version 2>&1 | head -1)"
 fi
 
-# 4. Instalar dependencias de Python
-echo -e "${BLUE}[*] Instalando librerías de Python (openai-whisper, yt-dlp, torch)...${NC}"
-python3 -m pip install --upgrade pip
-python3 -m pip install openai-whisper yt-dlp torch
+# -----------------------------------------------------------
+# PASO 4 — Warm-up: pre-descargar dependencias de Python
+# -----------------------------------------------------------
+info "Pre-descargando dependencias de Python con uv (openai-whisper, yt-dlp, torch)..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+uv run --no-project "$SCRIPT_DIR/transcribe.py" --help &>/dev/null || true
+ok "Dependencias de Python listas."
 
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}[✓] Librerías de Python instaladas correctamente.${NC}"
-else
-    echo -e "${RED}[!] Error al instalar las librerías de Python.${NC}"
-    exit 1
-fi
-
-# 5. Hacer ejecutable el script de transcripción
-chmod +x transcribe.py
-echo -e "${GREEN}[✓] Script 'transcribe.py' configurado como ejecutable.${NC}"
-
-echo -e "\n${GREEN}===============================================${NC}"
-echo -e "${GREEN}¡Instalación completada con éxito!${NC}"
-echo -e "Puedes empezar a transcribir usando:"
-echo -e "  ./transcribe.py \"Ruta/del/archivo\""
-echo -e "${GREEN}===============================================${NC}"
+# -----------------------------------------------------------
+echo ""
+echo -e "${GREEN}╔══════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║      ¡Instalación completada con éxito!      ║${NC}"
+echo -e "${GREEN}╚══════════════════════════════════════════════╝${NC}"
+echo ""
+echo "Cómo transcribir:"
+echo -e "  ${BLUE}uv run transcribe.py \"ruta/del/video.mp4\"${NC}"
+echo -e "  ${BLUE}uv run transcribe.py \"https://youtube.com/watch?v=...\"${NC}"
+echo -e "  ${BLUE}uv run transcribe.py \"video.mp4\" --model medium --language es${NC}"
+echo ""

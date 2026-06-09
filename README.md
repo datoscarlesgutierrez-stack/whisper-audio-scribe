@@ -1,94 +1,123 @@
-# WhisperAudioScribe: Transcriptor Local de Audio y Video con OpenAI Whisper
+# WhisperAudioScribe
 
-Este proyecto contiene un script de Python interactivo (`transcribe.py`) para transcribir archivos de audio y video locales o directamente desde URLs de internet (como YouTube) usando la biblioteca oficial de **OpenAI Whisper**.
+> Transcriptor local de audio y vídeo con **OpenAI Whisper** — compatible con macOS, Linux y Windows.
 
-La transcripción se procesa localmente y el resultado se guarda en un documento de texto con formato **Markdown (`.md`)** e incluye marcas de tiempo estructuradas de forma legible.
+Convierte cualquier vídeo o audio local (o una URL de YouTube) en un documento **Markdown con marcas de tiempo**, todo corriendo en tu propia máquina sin enviar datos a ningún servidor.
+
+---
+
+## ⚡ Inicio rápido (con uv)
+
+Este proyecto usa **[uv](https://docs.astral.sh/uv/)** para gestionar Python y todas sus dependencias. No necesitas instalar Python ni pip manualmente.
+
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/datoscarlesgutierrez-stack/whisper-audio-scribe.git
+cd whisper-audio-scribe
+```
+
+### 2. Ejecutar el instalador
+
+#### macOS y Linux:
+```bash
+chmod +x install.sh
+./install.sh
+```
+
+#### Windows (PowerShell como Administrador):
+```powershell
+Set-ExecutionPolicy Bypass -Scope Process -Force
+.\install.ps1
+```
+
+Los instaladores gestionan **todo** automáticamente:
+- Instalan **uv** (gestor de Python y paquetes de Astral)
+- Instalan **Python 3.12** vía uv
+- Instalan **FFmpeg** (el único componente de sistema necesario)
+- Pre-descargan todas las dependencias de Python
+
+### 3. Transcribir
+
+```bash
+# Archivo local
+uv run transcribe.py "Videos/mi_grabacion.mp4"
+
+# URL de YouTube u otra plataforma
+uv run transcribe.py "https://www.youtube.com/watch?v=..."
+
+# Con opciones avanzadas
+uv run transcribe.py "video.mp4" --model medium --language en -o resultado.md
+```
+
+> La primera ejecución descargará el modelo Whisper (~250 MB para `small`). Las siguientes son instantáneas.
 
 ---
 
 ## Características
 
-- 🎙️ **OpenAI Whisper Oficial**: Usa el motor oficial de OpenAI corriendo en local.
-- ⚡ **Aceleración por Hardware**: Intenta usar la GPU automáticamente (`mps` en macOS, `cuda` en Windows con tarjetas NVIDIA) con fallback automático a CPU en caso de incompatibilidad.
-- 🔗 **Soporte de URLs**: Permite transcribir vídeos de YouTube u otras plataformas pasando directamente el enlace (gracias a `yt-dlp`).
-- 📝 **Salida Markdown**: Estructura el texto en párrafos conversacionales limpios con marcas de tiempo formateadas `[MM:SS]` o `[HH:MM:SS]`.
-- ⚙️ **Configurable**: Permite elegir la precisión (modelos: `tiny`, `base`, `small`, `medium`, `large`) y el idioma.
+| | |
+|---|---|
+| 🎙️ **OpenAI Whisper oficial** | Motor de transcripción local sin API ni costes |
+| ⚡ **Gestión con uv** | Python y paquetes aislados, sin contaminar el sistema |
+| 🔗 **URLs de vídeo** | YouTube, Vimeo y cualquier plataforma via `yt-dlp` |
+| 🌍 **Multiidioma** | Español, inglés, francés y 99 idiomas más |
+| 📝 **Salida Markdown** | Párrafos estructurados con marcas de tiempo `[MM:SS]` |
+| 🖥️ **GPU automática** | Usa MPS (Apple Silicon), CUDA (NVIDIA) o CPU según el hardware |
 
 ---
 
-## Instalación
+## Opciones del script
 
-Puedes realizar la instalación de forma automatizada mediante los scripts incluidos, o seguir el método manual.
-
-### 🚀 Método 1: Instalación Automatizada (Recomendado)
-
-#### En macOS (y Linux):
-Abre tu terminal y ejecuta:
-```bash
-./install.sh
 ```
-*(El script comprobará Python3, instalará FFmpeg a través de Homebrew si falta, e instalará todas las dependencias de Python necesarias).*
+uv run transcribe.py <INPUT> [opciones]
 
-#### En Windows:
-Abre PowerShell como Administrador y ejecuta:
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force
-.\install.ps1
-```
-*(El script comprobará Python, intentará instalar FFmpeg automáticamente a través de Windows Package Manager `winget` si falta, e instalará todas las dependencias necesarias).*
+Argumentos:
+  INPUT               Ruta a fichero local o URL de vídeo/audio
 
----
-
-### 🛠️ Método 2: Instalación Manual
-
-Si prefieres realizar los pasos por ti mismo:
-
-1. **Instalar dependencias del sistema (FFmpeg)**:
-   - **macOS** (con Homebrew): `brew install ffmpeg`
-   - **Windows** (con Chocolatey): `choco install ffmpeg` (o descárgalo de https://ffmpeg.org y añádelo al PATH)
-
-2. **Instalar librerías de Python**:
-   ```bash
-   pip3 install openai-whisper yt-dlp torch
-   ```
-
----
-
-## Cómo usar el script
-
-El script se puede ejecutar pasando la ruta del archivo o una URL. Por defecto, utiliza el modelo `small` y el idioma español (`es`).
-
-### 1. Transcribir un archivo local (video o audio)
-```bash
-python3 transcribe.py "Videos/2026-06-04 12-28-46.mov"
-```
-*Esto generará un archivo `transcripcion_2026-06-04 12-28-46.md` en el mismo directorio del video.*
-
-### 2. Transcribir a partir de una URL (YouTube, etc.)
-```bash
-python3 transcribe.py "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-```
-*Descargará el audio temporalmente, lo transcribirá, y guardará el resultado en un archivo `.md`.*
-
-### Opciones avanzadas:
-
-- **Elegir modelo (`-m` / `--model`)**: Puedes cambiar el modelo para mayor velocidad (`tiny`, `base`) o mayor precisión (`medium`, `large`). El valor por defecto es `small`.
-- **Elegir idioma (`-l` / `--language`)**: Indicar el código de idioma del audio (ej. `en` para inglés, `fr` para francés). Por defecto es `es`.
-- **Definir archivo de salida (`-o` / `--output`)**: Indicar una ruta específica para el archivo Markdown de salida.
-
-#### Ejemplo de uso avanzado:
-```bash
-python3 transcribe.py "Videos/mi_video.mp4" -m medium -l es -o "Resultados/transcripcion_detallada.md"
+Opciones:
+  -m, --model         Modelo Whisper: tiny, base, small (por defecto), medium, large
+  -l, --language      Código de idioma (por defecto: es). Ej: en, fr, de, ja
+  -o, --output        Ruta del fichero Markdown de salida (se autogenera si no se indica)
 ```
 
 ---
 
-## Modelos Disponibles
+## Modelos disponibles
 
-| Nombre | Parámetros | RAM Requerida | Velocidad relativa | Precisión general |
-| --- | --- | --- | --- | --- |
-| `tiny` | 39M | ~1 GB | ~32x | Básica (útil para pruebas rápidas) |
-| `base` | 74M | ~1 GB | ~16x | Buena |
-| `small` | 244M | ~2 GB | ~6x | Muy buena (equilibrio ideal) |
-| `medium` | 769M | ~5 GB | ~2x | Excelente |
-| `large` | 1550M | ~10 GB | ~1x | Máxima precisión (más lenta) |
+| Modelo | Parámetros | RAM aprox. | Velocidad | Precisión |
+|--------|-----------|-----------|-----------|-----------|
+| `tiny`   | 39M  | ~1 GB | ~32x | Básica |
+| `base`   | 74M  | ~1 GB | ~16x | Buena |
+| `small`  | 244M | ~2 GB | ~6x  | ⭐ Equilibrio ideal (por defecto) |
+| `medium` | 769M | ~5 GB | ~2x  | Excelente |
+| `large`  | 1550M| ~10 GB| ~1x  | Máxima precisión |
+
+---
+
+## Cómo funciona `uv run`
+
+`transcribe.py` incluye metadatos **PEP 723** que indican a `uv` qué paquetes necesita. Cuando ejecutas `uv run transcribe.py`, uv:
+
+1. Lee los metadatos del propio script
+2. Crea un entorno virtual aislado si no existe
+3. Instala las dependencias necesarias
+4. Ejecuta el script
+
+No tienes que tocar `pip`, `venv` ni `conda`. Si añades `uv` a tu PATH tras el instalador, simplemente funciona.
+
+---
+
+## Requisito de sistema: FFmpeg
+
+FFmpeg es el único componente que no instala uv (es un binario de sistema, no un paquete Python). El instalador lo gestiona automáticamente. Si necesitas instalarlo a mano:
+
+- **macOS**: `brew install ffmpeg`
+- **Ubuntu/Debian**: `sudo apt install ffmpeg`
+- **Windows**: `winget install Gyan.FFmpeg`
+
+---
+
+## Licencia
+
+MIT — úsalo, modifícalo y compártelo libremente.
